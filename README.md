@@ -101,6 +101,22 @@ No global `user.name` set? It borrows the repo owner and a `noreply` address **f
 
 ---
 
+## Creating a new repo
+
+```bash
+bash new-repo.sh ~/my-project
+```
+
+It reads a name and description from `package.json`, or from the README's first heading and first paragraph, then opens your browser on the **new-repo page with both fields already filled in**. You click the green `Create repository`; it takes over: waits for the repo to appear, sets the remote, pushes, prints the URL.
+
+There is no API that skips this — `git push` needs the repo to exist, and creating one is a REST action, not a git operation. So you click once, everything else is automatic.
+
+Two guards: it refuses to push if the target repo already has content (that means the name collided), and it refuses to touch a directory whose `origin` points at another project.
+
+---
+
+---
+
 ## Traps we already hit
 
 Each of these cost us real time. They are the reason this repo exists.
@@ -149,6 +165,7 @@ setup.sh              show what this machine already has (--status), then config
 ssh-setup.sh          generate a key, print the public half, verify GitHub accepts it
 verify.sh             prove write access with a real push, then clean up
 push.sh               commit and push in one step
+new-repo.sh           name it, describe it, open the prefilled page, wait, push
 TROUBLESHOOTING.md    error text → cause → fix
 ```
 

@@ -101,6 +101,20 @@ bash push.sh -m "记个想法"
 
 ---
 
+## 建新仓库
+
+```bash
+bash new-repo.sh ~/my-project
+```
+
+它从 `package.json` 的 `name`/`description`，或 README 的一级标题和第一段正文，起好名字和描述，直接把浏览器开在**两栏都填好的**新建页面上。你点一下绿色 `Create repository`，剩下的它接过去：等仓库出现、绑 origin、推送、报地址。
+
+建仓库没有能绕过的 API——`git push` 要求仓库已经存在，而"创建仓库"是 REST 动作不是 git 操作。所以这一步永远是你点一次，其余全自动。
+
+它还有两道保险：目标仓库已经有内容就拒绝推送（说明名字撞了）；目录的 `origin` 指向别的项目就拒绝动手（删掉别人的 origin 再覆盖是最容易犯的错）。
+
+---
+
 ## 已经踩过的坑
 
 每一条都真花过时间。这个仓库存在的理由就是它们。
@@ -149,6 +163,7 @@ setup.sh              看这台机器现在有什么（--status），再决定�
 ssh-setup.sh          生成密钥、打印公钥、验证 GitHub 是否接受
 verify.sh             用一次真实推送证明权限，然后清理干净
 push.sh               一步完成提交和推送
+new-repo.sh           建仓库：起名、算描述、弹预填页面、等创建、自动推送
 TROUBLESHOOTING.md    报错原文 → 原因 → 处置
 ```
 
