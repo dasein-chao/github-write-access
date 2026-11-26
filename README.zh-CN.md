@@ -34,12 +34,31 @@ cd github-write-access
 bash setup.sh
 ```
 
-`setup.sh` 先告诉你这台机器到底有什么，再带你走完唯一那一步凭据配置：
+`setup.sh` 先告诉你这台机器到底有什么，再带你走完唯一那一步凭据配置。
 
-- **浏览器授权**——在 GitHub 自己的页面上点一次，不用复制任何东西（默认方式）。
-- **个人访问令牌**——无桌面的机器，或者你手上只有手机时用。见下面「手机与无桌面环境」。
+---
 
-Windows 直接双击 `open-write-access.cmd`。做的是同一件事，窗口会停住让你看清结果。
+## 凭据选哪个
+
+| | SSH 密钥 | 个人访问令牌 |
+|---|---|---|
+| 推拉任意仓库 | 可以 | 可以 |
+| 覆盖以后新建的仓库 | 可以 | 可以 |
+| 有效期 | 永不过期 | 最长 1 年 |
+| 能删仓库、改可见性、读 Actions secrets | 不能 | 能 |
+| 能创建新仓库 | 不能 | 能 |
+
+先选 SSH 密钥。权限更小，而且不过期：
+
+```bash
+bash ssh-setup.sh
+```
+
+它会打印一行 `ssh-ed25519` 开头的公钥。把这一整行贴到 https://github.com/settings/ssh/new ，再跑一次脚本——GitHub 一接受，它立刻告诉你。
+
+**SSH 有一件做不到的事，这不是缺陷**：创建仓库。`git push` 要求仓库已经存在，而「创建仓库」是网页或 API 的动作，不属于 git 操作。如果你要把建仓库也自动化，就用令牌；或者用只勾 `Administration: write` 的细粒度令牌——它能建仓库改设置，但读不到你的代码。
+
+Windows 双击 `open-write-access.cmd` 走浏览器/令牌路线，或者在 Git Bash 里跑脚本。
 
 ---
 
@@ -92,8 +111,17 @@ bash push.sh -m "记个想法"
 
 手机可以完成授权，但跑不了脚本。分工是这样：
 
+**SSH 密钥**
+
+1. 在要推送的那台机器上跑 `bash ssh-setup.sh`，它会打印一行 `ssh-ed25519` 开头的公钥。
+2. 手机上打开 https://github.com/settings/ssh/new ，把这行贴进去，标题随便填。
+3. 回到机器上再跑一次。出现 `successfully authenticated` 就成了。
+4. 新建仓库还是得手机点一下：https://github.com/new ，填名字，**Add a README / .gitignore / license 三个都别勾**。
+
+**令牌**
+
 1. 手机上创建细粒度令牌：**Settings → Developer settings → Personal access tokens → Fine-grained tokens**。Repository access 选你要的仓库，Permissions 里 **Contents: Read and write**。
-2. 在机器上把它存成文件，指给脚本：
+2. 在机器上把它存成文件——文件，不是聊天消息、不是命令行参数，那两样都会进日志：
 
 ```bash
 bash setup.sh --token-file ~/.github-token
@@ -101,7 +129,7 @@ bash setup.sh --token-file ~/.github-token
 
 令牌会先经过 GitHub 校验才入库，全程不打印明文，只报长度和开头几个字符。
 
-无桌面环境走同一条路。那里没有终端可以画浏览器提示，别尝试交互式登录——它不会报错，只会静静挂住。
+无桌面环境走同样这两条路。那里没有终端可以画浏览器提示，别尝试交互式登录——它不会报错，只会静静挂住。
 
 ---
 
@@ -109,6 +137,7 @@ bash setup.sh --token-file ~/.github-token
 
 ```
 setup.sh              诊断，然后配置凭据
+ssh-setup.sh          生成密钥、打印公钥、验证 GitHub 是否接受
 verify.sh             用一次真实推送证明权限，然后清理干净
 push.sh               一步完成提交和推送
 open-write-access.cmd Windows 双击启动器
