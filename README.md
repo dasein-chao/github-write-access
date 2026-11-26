@@ -34,12 +34,31 @@ cd github-write-access
 bash setup.sh
 ```
 
-`setup.sh` tells you what your machine actually has, then walks you through the one credential step it needs:
+`setup.sh` tells you what your machine actually has, then walks you through the one credential step it needs.
 
-- **Browser authorization** — one click on GitHub's own page, nothing to copy around (default).
-- **Personal access token** — if you are on a headless box, or only have a phone. Details in [Mobile and headless](#mobile-and-headless).
+---
 
-Windows: double-click `open-write-access.cmd` instead. It does the same thing and keeps the window open so you can read the result.
+## Which credential
+
+| | SSH key | Personal access token |
+|---|---|---|
+| Push and pull any repo | yes | yes |
+| Covers repos you create later | yes | yes |
+| Expires | never | 1 year max |
+| Can delete a repo, change visibility, read Actions secrets | no | yes |
+| Can create a new repo | no | yes |
+
+Start with the SSH key. It is the smaller permission and it does not expire:
+
+```bash
+bash ssh-setup.sh
+```
+
+It prints one line starting with `ssh-ed25519`. Paste that line into https://github.com/settings/ssh/new and run the script again — it tells you the moment GitHub accepts it.
+
+**One thing SSH cannot do, and it is not a bug:** create a repository. `git push` needs a repository that already exists, and creating one is a web or API action, not a git operation. If you need repository creation automated, use a token — or a fine-grained token with only `Administration: write`, which can create repos and cannot read your code.
+
+Windows: double-click `open-write-access.cmd` for the browser or token route, or run the scripts from Git Bash.
 
 ---
 
@@ -90,10 +109,19 @@ Run `setup.sh --status` any time you are unsure where you stand.
 
 ## Mobile and headless
 
-You can authorize from a phone; you cannot run the scripts from one. The split:
+You can authorize from a phone. You cannot run these scripts from one. Who does what:
 
-1. On the phone, create a fine-grained token: **Settings → Developer settings → Personal access tokens → Fine-grained tokens**. Repository access: the repos you want. Permissions: **Contents: Read and write**.
-2. On the machine, save it to a file and point the script at it:
+**SSH key**
+
+1. Run `bash ssh-setup.sh` on the machine that will push. It prints one line starting with `ssh-ed25519`.
+2. On the phone, open https://github.com/settings/ssh/new and paste that line. Title it whatever you like.
+3. Back on the machine, run it again. `successfully authenticated` means done.
+4. New repos still need one tap on the phone: https://github.com/new — name it, and leave **Add a README**, **.gitignore** and **license** unchecked.
+
+**Token**
+
+1. On the phone: Settings → Developer settings → Personal access tokens → Fine-grained tokens. Repository access: the repos you want. Permissions: **Contents: Read and write**.
+2. On the machine, save it to a file — a file, not a chat message and not a shell argument, both of which end up in logs:
 
 ```bash
 bash setup.sh --token-file ~/.github-token
@@ -101,7 +129,7 @@ bash setup.sh --token-file ~/.github-token
 
 The token is checked against GitHub before it is stored, and never printed — only its length and first characters.
 
-Headless boxes use the same path. There is no terminal to draw a browser prompt in, so do not try to run an interactive login there; it will hang rather than fail.
+Headless boxes use the same two paths. There is no terminal to draw a browser prompt in, so an interactive login there hangs instead of failing.
 
 ---
 
@@ -109,6 +137,7 @@ Headless boxes use the same path. There is no terminal to draw a browser prompt 
 
 ```
 setup.sh              diagnose, then configure credentials
+ssh-setup.sh          generate a key, print the public half, verify GitHub accepts it
 verify.sh             prove write access with a real push, then clean up
 push.sh               commit and push in one step
 open-write-access.cmd Windows double-click launcher
