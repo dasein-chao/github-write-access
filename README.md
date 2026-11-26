@@ -1,6 +1,6 @@
 # GitHub Write Access
 
-**Your AI assistant can read your repos but every write fails with `403`. This fixes it in a minute — one script, no new app, no sign-up.**
+**Your AI assistant can read your repos but every write fails with `403`. Fixed in a minute: check whether this machine already has a working SSH key, one command, no new app, no sign-up.**
 
 If you have ever pasted code into a chat and got this back:
 
