@@ -28,13 +28,24 @@ The only way forward is credentials you control, on the machine doing the work.
 
 ## The fix
 
+Check first — plenty of machines already have a working SSH key and nobody ever asked:
+
 ```bash
 git clone https://github.com/dasein-chao/github-write-access
 cd github-write-access
-bash setup.sh
+bash setup.sh --status
 ```
 
-`setup.sh` tells you what your machine actually has, then walks you through the one credential step it needs.
+Read the `ssh auth` line.
+
+- **`YES - github.com recognises you as <login>`** — nothing to configure. `git push` already works here. Skip to *Verify it, don't assume it* and run `verify.sh`.
+- **`no`** — generate a key. You paste one line into a web page, once:
+
+```bash
+bash ssh-setup.sh
+```
+
+It prints one line starting with `ssh-ed25519`. Paste that line into https://github.com/settings/ssh/new and run the script again — it tells you the moment GitHub accepts it.
 
 ---
 
@@ -48,17 +59,15 @@ bash setup.sh
 | Can delete a repo, change visibility, read Actions secrets | no | yes |
 | Can create a new repo | no | yes |
 
-Start with the SSH key. It is the smaller permission and it does not expire:
+Start with the SSH key. It is the smaller permission and it does not expire.
 
-```bash
-bash ssh-setup.sh
+**One thing SSH cannot do, and it is not a bug:** create a repository. `git push` needs a repository that already exists, and creating one is a web or API action, not a git operation. Open this link, name it, press Create, then push:
+
+```
+https://github.com/new
 ```
 
-It prints one line starting with `ssh-ed25519`. Paste that line into https://github.com/settings/ssh/new and run the script again — it tells you the moment GitHub accepts it.
-
-**One thing SSH cannot do, and it is not a bug:** create a repository. `git push` needs a repository that already exists, and creating one is a web or API action, not a git operation. If you need repository creation automated, use a token — or a fine-grained token with only `Administration: write`, which can create repos and cannot read your code.
-
-Windows: double-click `open-write-access.cmd` for the browser or token route, or run the scripts from Git Bash.
+Automating repo creation too needs a token: `bash setup.sh --token-file` or `bash setup.sh --browser`.
 
 ---
 
@@ -136,11 +145,10 @@ Headless boxes use the same two paths. There is no terminal to draw a browser pr
 ## What's in here
 
 ```
-setup.sh              diagnose, then configure credentials
+setup.sh              show what this machine already has (--status), then configure only if needed
 ssh-setup.sh          generate a key, print the public half, verify GitHub accepts it
 verify.sh             prove write access with a real push, then clean up
 push.sh               commit and push in one step
-open-write-access.cmd Windows double-click launcher
 TROUBLESHOOTING.md    error text → cause → fix
 ```
 

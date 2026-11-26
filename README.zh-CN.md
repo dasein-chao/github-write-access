@@ -28,13 +28,24 @@
 
 ## 修复
 
+先别急着配东西——很多机器早就有一把能用的 SSH 密钥了，只是没人查过：
+
 ```bash
 git clone https://github.com/dasein-chao/github-write-access
 cd github-write-access
-bash setup.sh
+bash setup.sh --status
 ```
 
-`setup.sh` 先告诉你这台机器到底有什么，再带你走完唯一那一步凭据配置。
+看 `ssh auth` 那一行。
+
+- **`YES - github.com recognises you as <你的用户名>`** —— 什么都不用配。`git push` 直接就能用，跳到下面「要验证，不要假设」跑一遍 `verify.sh` 确认。
+- **`no`** —— 生成一把密钥，只需要你在网页上粘一次公钥：
+
+```bash
+bash ssh-setup.sh
+```
+
+它打印一行 `ssh-ed25519` 开头的公钥。把这一整行贴到 https://github.com/settings/ssh/new ，再跑一次脚本——GitHub 一接受，它立刻告诉你。
 
 ---
 
@@ -48,17 +59,15 @@ bash setup.sh
 | 能删仓库、改可见性、读 Actions secrets | 不能 | 能 |
 | 能创建新仓库 | 不能 | 能 |
 
-先选 SSH 密钥。权限更小，而且不过期：
+先选 SSH 密钥。权限更小，而且不过期。
 
-```bash
-bash ssh-setup.sh
+**SSH 有一件做不到的事，这不是缺陷**：创建仓库。`git push` 要求仓库已经存在，而「创建仓库」是网页或 API 的动作，不属于 git 操作。要建新仓库就先点这个链接，起个名字按 Create，回来再推：
+
+```
+https://github.com/new
 ```
 
-它会打印一行 `ssh-ed25519` 开头的公钥。把这一整行贴到 https://github.com/settings/ssh/new ，再跑一次脚本——GitHub 一接受，它立刻告诉你。
-
-**SSH 有一件做不到的事，这不是缺陷**：创建仓库。`git push` 要求仓库已经存在，而「创建仓库」是网页或 API 的动作，不属于 git 操作。如果你要把建仓库也自动化，就用令牌；或者用只勾 `Administration: write` 的细粒度令牌——它能建仓库改设置，但读不到你的代码。
-
-Windows 双击 `open-write-access.cmd` 走浏览器/令牌路线，或者在 Git Bash 里跑脚本。
+想连建仓库也自动化，才需要用令牌：`bash setup.sh --token-file` 或 `bash setup.sh --browser`。
 
 ---
 
@@ -136,11 +145,10 @@ bash setup.sh --token-file ~/.github-token
 ## 里面有什么
 
 ```
-setup.sh              诊断，然后配置凭据
+setup.sh              看这台机器现在有什么（--status），再决定要不要配东西
 ssh-setup.sh          生成密钥、打印公钥、验证 GitHub 是否接受
 verify.sh             用一次真实推送证明权限，然后清理干净
 push.sh               一步完成提交和推送
-open-write-access.cmd Windows 双击启动器
 TROUBLESHOOTING.md    报错原文 → 原因 → 处置
 ```
 

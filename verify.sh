@@ -27,6 +27,14 @@ say() { printf '%s\n' "$*"; }
 pass() { printf '\nPASS - %s\n' "$*"; }
 fail() { printf '\nFAIL - %s\n' "$*"; exit 1; }
 
+# Prints the GitHub login if this machine already has a working SSH key.
+ssh_user() {
+  local out
+  out="$(ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
+            -T git@github.com 2>&1)"
+  printf '%s\n' "$out" | sed -n 's/^Hi \([^!]*\)!.*/\1/p'
+}
+
 if [ -z "$REPO" ]; then
   say "No repo given. Pass one you own, with at least one commit:"
   say "  bash verify.sh --repo your-name/your-repo"
@@ -45,19 +53,33 @@ say "branch : $BRANCH"
 
 say ""
 say "[0/5] checking credential"
-CRED="$(printf 'protocol=https\nhost=github.com\n\n' | timeout 15 git credential fill 2>/dev/null)"
-if ! printf '%s' "$CRED" | grep -q '^password='; then
-  say "      No credential for github.com."
-  say ""
-  say "      Fix that first:"
-  say "        bash setup.sh --browser"
-  say "        bash setup.sh --token-file ~/.github-token"
-  fail "nothing to test"
+TRANSPORT="https"
+SSH_USER="$(ssh_user 2>/dev/null || true)"
+if [ -n "$SSH_USER" ]; then
+  TRANSPORT="ssh"
+  say "      SSH key accepted by github.com as $SSH_USER"
+else
+  CRED="$(printf 'protocol=https\nhost=github.com\n\n' | timeout 15 git credential fill 2>/dev/null)"
+  if ! printf '%s' "$CRED" | grep -q '^password='; then
+    say "      No credential for github.com - neither an SSH key nor a stored token."
+    say ""
+    say "      Fix that first:"
+    say "        bash ssh-setup.sh                  (recommended: no token to leak, never expires)"
+    say "        bash setup.sh --browser            (or log in with a token)"
+    fail "nothing to test"
+  fi
+  say "      stored token (username=$(printf '%s\n' "$CRED" | sed -n 's/^username=//p'))"
 fi
-say "      found (username=$(printf '%s\n' "$CRED" | sed -n 's/^username=//p'))"
+
+if [ "$TRANSPORT" = "ssh" ]; then
+  REMOTE="git@github.com:$REPO.git"
+else
+  REMOTE="https://github.com/$REPO.git"
+fi
+say "      transport : $TRANSPORT"
 
 say "[1/5] cloning"
-if ! git clone --quiet --depth 1 "https://github.com/$REPO.git" "$WORK/repo" 2>"$WORK/clone.err"; then
+if ! git clone --quiet --depth 1 "$REMOTE" "$WORK/repo" 2>"$WORK/clone.err"; then
   sed -n '1,4p' "$WORK/clone.err"
   say ""
   say "      Empty repos cannot be tested - there is no branch to build on."
@@ -98,6 +120,9 @@ if ! git push --quiet origin "$BRANCH" 2>"$WORK/push.err"; then
       say "      The token lacks Contents: Read and write, or this repo is not in its list." ;;
     *"Authentication failed"*|*"Invalid username or token"*|*"could not read Username"*)
       say "      The stored credential is broken. Run: bash setup.sh --clean" ;;
+    *"Permission denied (publickey)"*)
+      say "      This machine's SSH key is not registered on GitHub, or not allowed here."
+      say "      Add it: bash ssh-setup.sh" ;;
     *"denied to"*)
       say "      Credential is fine, but this account has no write access to $REPO." ;;
     *)

@@ -29,6 +29,14 @@ showpath() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1" 2>/dev/
 
 have_tty() { [ -t 0 ] && [ -t 1 ]; }
 
+# Prints the GitHub login if this machine already has a working SSH key.
+ssh_user() {
+  local out
+  out="$(ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
+            -T git@github.com 2>&1)"
+  printf '%s\n' "$out" | sed -n 's/^Hi \([^!]*\)!.*/\1/p'
+}
+
 check_token() { # $1=token; prints login on success, details on stderr, non-zero on failure
   local tk="$1" body login
   body="$(curl -sS --max-time 20 -H "Authorization: Bearer $tk" \
@@ -46,11 +54,19 @@ current_cred() {
 }
 
 status() {
+  local ssh_login
+  ssh_login="$(ssh_user 2>/dev/null || true)"
+
   hl "== environment =="
   say "git        : $(git --version 2>/dev/null || echo 'not found')"
   say "gcm        : $(git credential-manager --version 2>/dev/null | head -1 || echo 'not found')"
   say "curl       : $(curl --version 2>/dev/null | head -1 || echo 'not found')"
-  say "ssh keys   : $(ls "$HOME/.ssh"/*.pub 2>/dev/null | wc -l | tr -d ' ')"
+  say "ssh keys   : $(ls "$HOME/.ssh"/*.pub 2>/dev/null | wc -l | tr -d ' ') public key file(s) in ~/.ssh"
+  if [ -n "$ssh_login" ]; then
+    say "ssh auth   : YES - github.com recognises you as $ssh_login"
+  else
+    say "ssh auth   : no"
+  fi
 
   hl "== git identity =="
   say "user.name  : $(git config --global --get user.name || echo '<unset>')"
@@ -68,6 +84,8 @@ status() {
     else
       say "valid      : NO. This credential is broken. Run: bash setup.sh --clean"
     fi
+  elif [ -n "$ssh_login" ]; then
+    say "stored     : none - not needed. The SSH key above already covers push."
   else
     say "stored     : none (pushes will fail)"
   fi
